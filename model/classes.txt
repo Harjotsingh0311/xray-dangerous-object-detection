@@ -1,0 +1,5 @@
+0,Folding_Knife
+1,Straight_Knife
+2,Scissors
+3,Utility_Knife
+4,Multi-tool_Knife

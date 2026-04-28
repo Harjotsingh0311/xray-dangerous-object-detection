@@ -1,0 +1,21 @@
+# Core
+ultralytics>=8.2.0        # YOLOv8 — training, inference, export
+torch>=2.0.0              # PyTorch backend
+torchvision>=0.15.0
+
+# App UI
+pygame>=2.5.0             # Conveyor belt visualisation
+
+# Image / data
+Pillow>=10.0.0
+numpy>=1.24.0
+opencv-python>=4.8.0      # Used by evaluate.py for drawing
+
+# Evaluation / plots
+matplotlib>=3.7.0
+seaborn>=0.13.0           # Confusion matrix heatmap
+scikit-learn>=1.3.0       # Optional: sklearn metrics cross-check
+PyYAML>=6.0               # dataset.yaml parsing
+
+# Utilities
+tqdm>=4.65.0              # Progress bars in prepare_dataset.py

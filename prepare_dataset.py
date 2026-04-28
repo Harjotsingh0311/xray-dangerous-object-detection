@@ -1,0 +1,260 @@
+"""
+prepare_dataset.py
+==================
+Converts the OPIXray dataset (custom TXT annotations) into YOLO format
+and creates an 80/20 train/val split from the full training set.
+
+OPIXray annotation format (one file per folder, each line):
+    image_name  class_name  x1  y1  x2  y2
+
+YOLO format (one .txt per image, each line):
+    class_id  x_center  y_center  width  height   (all normalized 0-1)
+
+Usage:
+    python prepare_dataset.py --opixray_path /path/to/OPIXray --output_path ./data
+
+Expected OPIXray folder structure:
+    OPIXray/
+    ├── train/
+    │   ├── train_image/        ← .jpg images
+    │   └── train_annotation/   ← one annotation .txt per class
+    └── test/
+        ├── test_image/
+        └── test_annotation/
+"""
+
+import os
+import shutil
+import random
+import argparse
+from pathlib import Path
+from PIL import Image
+from collections import defaultdict
+from tqdm import tqdm
+
+# ── Class mapping ────────────────────────────────────────────────────────────
+CLASS_NAMES = [
+    "Folding_Knife",
+    "Straight_Knife",
+    "Scissors",
+    "Utility_Knife",
+    "Multi-tool_Knife",
+]
+CLASS_MAP = {name: idx for idx, name in enumerate(CLASS_NAMES)}
+
+# Aliases from the raw annotation files (handle casing / underscore variants)
+ALIAS_MAP = {
+    "Folding_Knife":    "Folding_Knife",
+    "folding_knife":    "Folding_Knife",
+    "Straight_Knife":   "Straight_Knife",
+    "straight_knife":   "Straight_Knife",
+    "Scissors":         "Scissors",
+    "scissors":         "Scissors",
+    "Utility_Knife":    "Utility_Knife",
+    "utility_knife":    "Utility_Knife",
+    "Multi-tool_Knife": "Multi-tool_Knife",
+    "multi-tool_knife": "Multi-tool_Knife",
+    "Multi_tool_Knife": "Multi-tool_Knife",
+    "multi_tool_knife": "Multi-tool_Knife",
+}
+
+VAL_RATIO = 0.20
+RANDOM_SEED = 42
+
+
+# ── Helpers ──────────────────────────────────────────────────────────────────
+
+def parse_opixray_annotations(annotation_dir: Path) -> dict:
+    """
+    Reads all annotation .txt files in annotation_dir.
+    Returns a dict: { image_name: [(class_id, x1, y1, x2, y2), ...] }
+    """
+    annotations = defaultdict(list)
+    txt_files = list(annotation_dir.glob("*.txt"))
+    if not txt_files:
+        raise FileNotFoundError(f"No .txt annotation files found in {annotation_dir}")
+
+    for ann_file in txt_files:
+        with open(ann_file, "r") as f:
+            for line in f:
+                parts = line.strip().split()
+                if len(parts) < 6:
+                    continue
+                img_name   = parts[0]
+                class_raw  = parts[1]
+                x1, y1, x2, y2 = int(parts[2]), int(parts[3]), int(parts[4]), int(parts[5])
+
+                canonical = ALIAS_MAP.get(class_raw)
+                if canonical is None:
+                    print(f"  [WARN] Unknown class '{class_raw}' in {ann_file.name} — skipping")
+                    continue
+                class_id = CLASS_MAP[canonical]
+                annotations[img_name].append((class_id, x1, y1, x2, y2))
+
+    return dict(annotations)
+
+
+def xyxy_to_yolo(x1, y1, x2, y2, img_w, img_h):
+    """Convert absolute xyxy bbox to normalized YOLO xywh."""
+    cx = (x1 + x2) / 2.0 / img_w
+    cy = (y1 + y2) / 2.0 / img_h
+    w  = (x2 - x1) / img_w
+    h  = (y2 - y1) / img_h
+    # Clamp to [0, 1]
+    cx = max(0.0, min(1.0, cx))
+    cy = max(0.0, min(1.0, cy))
+    w  = max(0.0, min(1.0, w))
+    h  = max(0.0, min(1.0, h))
+    return cx, cy, w, h
+
+
+def copy_and_label(image_names, image_dir, annotations, out_img_dir, out_lbl_dir, split_name):
+    """Copy images and write YOLO .txt labels for a given split."""
+    out_img_dir.mkdir(parents=True, exist_ok=True)
+    out_lbl_dir.mkdir(parents=True, exist_ok=True)
+
+    stats = defaultdict(int)
+    missing_images = 0
+
+    for img_name in tqdm(image_names, desc=f"  {split_name}"):
+        img_path = image_dir / img_name
+        if not img_path.exists():
+            missing_images += 1
+            continue
+
+        # Get image dimensions
+        with Image.open(img_path) as img:
+            img_w, img_h = img.size
+
+        # Copy image
+        shutil.copy2(img_path, out_img_dir / img_name)
+
+        # Write YOLO label
+        label_name = Path(img_name).stem + ".txt"
+        label_path = out_lbl_dir / label_name
+
+        boxes = annotations.get(img_name, [])
+        with open(label_path, "w") as f:
+            for (class_id, x1, y1, x2, y2) in boxes:
+                cx, cy, w, h = xyxy_to_yolo(x1, y1, x2, y2, img_w, img_h)
+                f.write(f"{class_id} {cx:.6f} {cy:.6f} {w:.6f} {h:.6f}\n")
+                stats[CLASS_NAMES[class_id]] += 1
+
+    if missing_images:
+        print(f"  [WARN] {missing_images} images not found in {image_dir}")
+    return stats
+
+
+def write_dataset_yaml(output_path: Path, num_classes: int, class_names: list):
+    yaml_content = f"""# OPIXray — YOLO dataset config
+# Generated by prepare_dataset.py
+
+path: {output_path.resolve()}   # dataset root
+train: images/train
+val:   images/val
+test:  images/test
+
+nc: {num_classes}
+names: {class_names}
+"""
+    yaml_path = output_path / "dataset.yaml"
+    with open(yaml_path, "w") as f:
+        f.write(yaml_content)
+    print(f"\n✅  dataset.yaml written → {yaml_path}")
+    return yaml_path
+
+
+# ── Main ─────────────────────────────────────────────────────────────────────
+
+def main():
+    parser = argparse.ArgumentParser(description="Prepare OPIXray dataset for YOLOv8 training")
+    parser.add_argument("--opixray_path", required=True,
+                        help="Root folder of the OPIXray dataset")
+    parser.add_argument("--output_path", default="./data",
+                        help="Where to save the converted dataset (default: ./data)")
+    parser.add_argument("--val_ratio", type=float, default=VAL_RATIO,
+                        help="Fraction of training images to use for validation (default: 0.20)")
+    parser.add_argument("--seed", type=int, default=RANDOM_SEED)
+    args = parser.parse_args()
+
+    opixray = Path(args.opixray_path)
+    output  = Path(args.output_path)
+    random.seed(args.seed)
+
+    # ── Locate source folders ─────────────────────────────────────────────
+    train_img_dir  = opixray / "train" / "train_image"
+    train_ann_dir  = opixray / "train" / "train_annotation"
+    test_img_dir   = opixray / "test"  / "test_image"
+    test_ann_dir   = opixray / "test"  / "test_annotation"
+
+    for d in [train_img_dir, train_ann_dir, test_img_dir, test_ann_dir]:
+        if not d.exists():
+            raise FileNotFoundError(f"Required folder not found: {d}")
+
+    print("\n📂  Parsing annotations …")
+    train_annotations = parse_opixray_annotations(train_ann_dir)
+    test_annotations  = parse_opixray_annotations(test_ann_dir)
+
+    print(f"   Train: {len(train_annotations)} annotated images")
+    print(f"   Test : {len(test_annotations)} annotated images")
+
+    # ── Also include background (unannotated) images ─────────────────────
+    all_train_images = sorted([
+        f.name for f in train_img_dir.iterdir()
+        if f.suffix.lower() in {".jpg", ".jpeg", ".png"}
+    ])
+    print(f"   Train folder total images: {len(all_train_images)}")
+
+    # ── Train / Val split ─────────────────────────────────────────────────
+    random.shuffle(all_train_images)
+    val_count   = max(1, int(len(all_train_images) * args.val_ratio))
+    val_images  = all_train_images[:val_count]
+    train_images = all_train_images[val_count:]
+
+    print(f"\n✂️   Split  →  train: {len(train_images)}  |  val: {len(val_images)}")
+
+    all_test_images = sorted([
+        f.name for f in test_img_dir.iterdir()
+        if f.suffix.lower() in {".jpg", ".jpeg", ".png"}
+    ])
+    print(f"   Test  : {len(all_test_images)} images")
+
+    # ── Copy & label ──────────────────────────────────────────────────────
+    print("\n📋  Converting and copying images …")
+
+    train_stats = copy_and_label(
+        train_images, train_img_dir, train_annotations,
+        output / "images" / "train",
+        output / "labels" / "train",
+        "train"
+    )
+    val_stats = copy_and_label(
+        val_images, train_img_dir, train_annotations,
+        output / "images" / "val",
+        output / "labels" / "val",
+        "val"
+    )
+    test_stats = copy_and_label(
+        all_test_images, test_img_dir, test_annotations,
+        output / "images" / "test",
+        output / "labels" / "test",
+        "test"
+    )
+
+    # ── Dataset YAML ──────────────────────────────────────────────────────
+    write_dataset_yaml(output, len(CLASS_NAMES), CLASS_NAMES)
+
+    # ── Summary ───────────────────────────────────────────────────────────
+    print("\n📊  Instance counts per split:")
+    print(f"  {'Class':<20} {'Train':>8} {'Val':>8} {'Test':>8}")
+    print("  " + "-" * 48)
+    for cls in CLASS_NAMES:
+        print(f"  {cls:<20} {train_stats.get(cls,0):>8} "
+              f"{val_stats.get(cls,0):>8} {test_stats.get(cls,0):>8}")
+
+    print(f"\n✅  Dataset ready at: {output.resolve()}")
+    print("    Next step: python train.py --data data/dataset.yaml")
+
+
+if __name__ == "__main__":
+    main()
