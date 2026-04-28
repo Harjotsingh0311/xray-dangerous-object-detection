@@ -1,231 +1,162 @@
-# 🔍 X-Ray Dangerous Object Detection
+X-Ray Dangerous Object Detection
 
-### Airport Baggage Scanner using YOLOv8 and RT-DETR Transformer
+Airport Baggage Scanner using YOLOv8 and RT-DETR
 
-## 👨‍💻 Author
+Author: Harjot Singh B.Tech – Artificial Intelligence & Machine Learning
+Thapar Institute of Engineering and Technology
 
-**Harjot Singh**\
-B.Tech -- Artificial Intelligence & Machine Learning\
-**Thapar Institute of Engineering and Technology**
+  ------------------
+  PROJECT OVERVIEW
+  ------------------
 
-------------------------------------------------------------------------
+Airport security relies heavily on X‑ray baggage scanners to detect
+dangerous objects inside luggage. Manual inspection is slow and prone to
+human error.
 
-# 📌 Project Overview
+This project builds an AI‑based X‑ray baggage inspection system capable
+of detecting dangerous objects automatically using deep learning.
 
-Airport security relies heavily on X-ray baggage scanners to detect
-dangerous objects inside luggage. Manual inspection is time-consuming
-and prone to human error.
+The system compares two modern detection architectures:
 
-This project builds an **AI-powered X-ray baggage scanning system**
-capable of detecting dangerous objects automatically using deep
-learning.
+YOLOv8 – Fast CNN‑based object detector RT‑DETR – Transformer‑based
+object detector with higher accuracy
 
-The system compares two modern object detection architectures:
+Both models are trained on the OPIXray dataset.
 
-• **YOLOv8 (CNN based detector)** -- optimized for real-time detection\
-• **RT-DETR (Transformer based detector)** -- optimized for higher
-accuracy
+  ------------
+  OBJECTIVES
+  ------------
 
-The models are trained on the **OPIXray dataset**, which contains real
-airport X-ray baggage images.
+• Detect dangerous objects in X‑ray baggage images • Train deep learning
+models using the OPIXray dataset • Compare CNN vs Transformer detection
+models • Evaluate performance using detection metrics • Build an
+interactive scanning interface • Provide explainability using EigenCAM
 
-The project also includes an **interactive scanner interface**
-simulating an airport security inspection system.
+  -------------
+  MODELS USED
+  -------------
 
-------------------------------------------------------------------------
+1)  YOLOv8 (CNN Detector)
 
-# 🎯 Objectives
+Advantages: - Very fast inference - Lightweight architecture - Suitable
+for real‑time scanning systems
 
-The main objectives of this project were:
+Model file: model/model_trained.pt
 
--   Detect dangerous objects in X-ray baggage images
--   Train deep learning models on the **OPIXray dataset**
--   Compare **CNN vs Transformer detection models**
--   Evaluate performance using standard detection metrics
--   Build an **interactive scanning system**
--   Provide **model explainability using EigenCAM**
+2)  RT-DETR (Transformer Detector)
 
-------------------------------------------------------------------------
+Advantages: - Higher detection accuracy - Better detection under
+occlusion - Stronger feature understanding
 
-# 🧠 Models Implemented
+Model file: model/model_trained2.pt
 
-## 1️⃣ YOLOv8 (CNN Detector)
+  ------------------
+  DETECTED CLASSES
+  ------------------
 
-YOLOv8 is a convolutional neural network designed for **fast real-time
-object detection**.
+0 Folding Knife 1 Straight Knife 2 Scissors 3 Utility Knife 4 Multi‑tool
+Knife
 
-Advantages:
+  -------------------
+  PROJECT STRUCTURE
+  -------------------
 
--   Very fast inference
--   Lightweight architecture
--   Suitable for real-time scanning systems
+xray-dangerous-object-detection
 
-Model file:
+main_enhanced.py main.py train.py evaluate.py prepare_dataset.py
+eigencam_visualizer.py
 
-model/model_trained.pt
+model/ model_trained.pt model_trained2.pt model_exported.pt
+model_exported.onnx classes.txt
 
-------------------------------------------------------------------------
+images/ runs/ evaluation_results/
 
-## 2️⃣ RT-DETR (Transformer Detector)
+requirements.txt README.md
 
-RT-DETR is a **Transformer-based object detector** using attention
-mechanisms to capture global image context.
+  -------------
+  QUICK START
+  -------------
 
-Advantages:
-
--   Higher detection accuracy
--   Better detection under occlusion
--   Stronger feature understanding
-
-Model file:
-
-model/model_trained2.pt
-
-------------------------------------------------------------------------
-
-# 🏷️ Detected Object Classes
-
-The system detects **five dangerous object categories**.
-
-  ID   Class
-  ---- ------------------
-  0    Folding Knife
-  1    Straight Knife
-  2    Scissors
-  3    Utility Knife
-  4    Multi-tool Knife
-
-------------------------------------------------------------------------
-
-# 📊 Model Performance
-
-  Model     Precision   Recall   mAP@0.5   Speed
-  --------- ----------- -------- --------- ----------
-  YOLOv8    0.85        0.81     0.78      Fast
-  RT-DETR   0.91        0.86     0.84      Moderate
-
-Observation:
-
--   RT-DETR provides higher detection accuracy
--   YOLOv8 provides much faster inference
-
-------------------------------------------------------------------------
-
-# 📁 Project Structure
-
-xray-dangerous-object-detection │ ├── main_enhanced.py \# Interactive
-X-ray scanner interface ├── main.py \# Basic scanner interface ├──
-train.py \# Model training script ├── evaluate.py \# Model evaluation
-script ├── prepare_dataset.py \# Dataset conversion script ├──
-eigencam_visualizer.py \# Explainable AI visualization │ ├── model │ ├──
-model_trained.pt │ ├── model_trained2.pt │ ├── model_exported.pt │ ├──
-model_exported.onnx │ └── classes.txt │ ├── images ├── data ├── runs ├──
-evaluation_results │ ├── requirements.txt └── README.md
-
-------------------------------------------------------------------------
-
-# ⚡ Quick Start
-
-### Clone repository
+1)  Clone repository
 
 git clone
-https://github.com/YOUR_USERNAME/xray-dangerous-object-detection.git
-
+https://github.com/Harjotsingh0311/xray-dangerous-object-detection.git
 cd xray-dangerous-object-detection
 
-------------------------------------------------------------------------
-
-### Create virtual environment
+2)  Create virtual environment
 
 python -m venv venv
 
-Activate:
+Activate environment
 
-Windows
+Windows: venv
 
-venv`\Scripts`{=tex}`\activate`{=tex}
+Linux/Mac: source venv/bin/activate
 
-Linux / Mac
-
-source venv/bin/activate
-
-------------------------------------------------------------------------
-
-### Install dependencies
+3)  Install dependencies
 
 pip install -r requirements.txt
 
-------------------------------------------------------------------------
-
-### Run scanner
+4)  Run scanner
 
 python main_enhanced.py
 
-Controls:
+Scanner Controls:
 
-  Key     Action
-  ------- ---------------------------
-  R       Load random baggage image
-  P       Load positive image
-  N       Load negative image
-  SPACE   Pause scanner
-  Q       Quit
+R Load random baggage image P Load positive image N Load negative image
+SPACE Pause scanner Q Quit application
 
-------------------------------------------------------------------------
+  ---------
+  DATASET
+  ---------
 
-# 📦 Dataset
+Dataset used: OPIXray
 
-The project uses the **OPIXray dataset**.
+Download dataset from: https://github.com/OPIXray-author/OPIXray
 
-Dataset repository:
-
-https://github.com/OPIXray-author/OPIXray
-
-After downloading the dataset:
+After downloading:
 
 python prepare_dataset.py
 
-------------------------------------------------------------------------
+  ----------
+  TRAINING
+  ----------
 
-# 🏋️ Training
+Train YOLOv8
 
-Train YOLOv8:
+python train.py –data data/dataset.yaml –model yolov8n –epochs 50
 
-python train.py --data data/dataset.yaml --model yolov8n --epochs 50
-
-Train RT-DETR:
+Train RT-DETR
 
 yolo detect train model=rtdetr-l.pt data=data/dataset.yaml epochs=50
 
-------------------------------------------------------------------------
+  ------------
+  EVALUATION
+  ------------
 
-# 📈 Evaluation
+Evaluate YOLOv8
 
-Evaluate YOLOv8:
+python evaluate.py –model model/model_trained.pt
 
-python evaluate.py --model model/model_trained.pt
+Evaluate RT-DETR
 
-Evaluate RT-DETR:
+python evaluate.py –model model/model_trained2.pt
 
-python evaluate.py --model model/model_trained2.pt
-
-Results are saved in:
+Results will be saved in:
 
 evaluation_results/
 
-------------------------------------------------------------------------
+  ----------------
+  EXPLAINABLE AI
+  ----------------
 
-# 🔬 Explainable AI
-
-EigenCAM visualization helps understand which regions influence the
+EigenCAM is used to visualize which regions of the X‑ray image influence
 model predictions.
 
 Run:
 
 python eigencam_visualizer.py
 
-------------------------------------------------------------------------
-
-# ⭐ If you found this project useful
-
-Please consider giving the repository a star.
+  -----
+  END
+  -----
