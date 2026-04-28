@@ -1,7 +1,8 @@
-X-Ray Dangerous Object Detection
-
-Airport Baggage Scanner using YOLOv8 and RT-DETR
-
+  ------------------
+  X-Ray Dangerous Object Detection
+  Airport Baggage Scanner using YOLOv8 and RT-DETR
+  ------------------
+  
 Author: Harjot Singh B.Tech – Artificial Intelligence & Machine Learning
 Thapar Institute of Engineering and Technology
 
